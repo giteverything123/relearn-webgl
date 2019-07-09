@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>WebGL纹理映射的透视纠正</title>
+	<style>
+		html,body{
+			height: 100%;
+		}
+		*{
+			box-sizing: border-box;
+		}
+		#canvas{
+			width: 10rem;
+			height:7.5rem;
+			border:1px solid #999;
+		}
+		.text{
+			font-size:0.37333rem;
+			line-height: 0.8rem;
+			padding:0 0.2rem;
+		}
+	</style>
+</head>
+<body>
+	<div class="text">我们先创建两个普通的长方形如下</div>
+	<canvas id="canvas"></canvas>
+	<script src="./common/flexible.js"></script>
+	<script src="./common/webgl-utils.js"></script>
+	<script src="./common/initShaders.js"></script>
+	<script src="./common/MV.js"></script>
+	<script id="vertex-shader" type="x-shader/vertex-shader">
+		attribute vec4 vPosition;
+		void main () {
+			gl_Position = vPosition;
+		}
+	</script>
+	<script id="fragment-shader" type="x-shader/fragment-shader">
+		precision mediump float;
+		void main () {
+			gl_FragColor = vec4(1.0,0.0,0.5,1.0);
+	  }
+	</script>
+	<script type="text/javascript">
+		function initFn () {
+			var canvas = document.getElementById('canvas');
+			var canvasClientWidth = canvas.clientWidth;
+			var canvasClientHeight = canvas.clientHeight;
+			canvas.width = canvasClientWidth;
+			canvas.height = canvasClientHeight;
+			var gl = WebGLUtils.setupWebGL(canvas);
+			if (!gl) {
+				alert('您当前的浏览器不支持webgl');
+			}
+			gl.viewport(0,0,canvas.width,canvas.height);
+			gl.clearColor(0,0,0,1);
+			let program = initShaders(gl,'vertex-shader', 'fragment-shader');
+			gl.useProgram(program);
+			var vPositionLoc = gl.getAttribLocation(program, 'vPosition');
+			var positions = [
+			-0.8, -0.8, 0, 1,
+			 0.8, -0.8, 0, 1,
+			-0.8, -0.2, 0, 1, //第一个矩形
+			-0.8, -0.2, 0, 1,
+			0.8,  -0.8, 0, 1,
+			0.8,  -0.2, 0, 1,
+
+			-0.8,  0.2, 0, 1,  
+		   0.8,  0.2, 0, 1,
+		  -0.8,  0.8, 0, 1, //第二个矩形
+		  -0.8,  0.8, 0, 1, 
+		   0.8,  0.2, 0, 1,
+		   0.8,  0.8, 0, 1
+			];
+			var positionBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER,flatten(positions), gl.STATIC_DRAW);
+			gl.enableVertexAttribArray(vPositionLoc);
+			gl.vertexAttribPointer(vPositionLoc, 4, gl.FLOAT, false, 0, 0);
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			gl.drawArrays(gl.TRIANGLES, 0, 12);
+		}
+
+		initFn()
+		
+
+	</script>
+</body>
+</html>

@@ -10,21 +10,30 @@
 		*{
 			box-sizing: border-box;
 		}
-		#canvas{
+		#canvas,#canvas2,#canvas3{
 			width: 10rem;
 			height:7.5rem;
 			border:1px solid #999;
 		}
 		.text{
 			font-size:0.37333rem;
-			line-height: 0.8rem;
-			padding:0 0.2rem;
+			line-height: 0.7rem;
+			text-indent: 0.2rem;
+			padding: 0 0.2rem;
+			word-break: break-all;
+		}
+		strong{
+			color:#ff7214;
 		}
 	</style>
 </head>
 <body>
-	<div class="text">我们先创建两个普通的长方形如下i123</div>
+	<div class="text">我们先创建两个普通的长方形如下</div>
 	<canvas id="canvas"></canvas>
+	<div class="text">现在我们加入一个渐变的效果</div>
+	<canvas id="canvas2"></canvas>
+	<div class="text">我们知道webgl会将gl_Position的值<strong>除以gl_Position.w</strong> ,所以理论上某个点的x,y,z,w按比例来的话点的位置应该是不会动的，比如原来有个点vec4(0.8,0.2,0.0,1.0)现在每个点除以一个数比如a,则点的位置不动如vec4(0.8/a,0.2/a,0.0/a,1.0/a),那么事实是这样吗？让我们来做一个实验</div>
+	<canvas id="canvas3"></canvas>
 	<script src="./common/flexible.js"></script>
 	<script src="./common/webgl-utils.js"></script>
 	<script src="./common/initShaders.js"></script>
@@ -41,7 +50,69 @@
 			gl_FragColor = vec4(1.0,0.0,0.5,1.0);
 	  }
 	</script>
+	<script id="vertex-shader2" type="x-shader/vertex-shader">
+		attribute vec4 vPosition;
+		attribute float a_brightness;
+		varying float v_brightness;
+		void main () {
+			gl_Position = vPosition;
+			v_brightness = a_brightness;
+		}
+	</script>
+	<script id="fragment-shader2" type="x-shader/fragment-shader">
+		precision mediump float;
+		varying float v_brightness;
+		void main () {
+			gl_FragColor = vec4(v_brightness,0.0,0.0,1.0);
+	  }
+	</script>
+	<script id="vertex-shader3" type="x-shader/vertex-shader">
+		attribute vec4 vPosition;
+		attribute float a_brightness;
+		varying float v_brightness;
+		void main () {
+			gl_Position = vPosition;
+			v_brightness = a_brightness;
+		}
+	</script>
+	<script id="fragment-shader3" type="x-shader/fragment-shader">
+		precision mediump float;
+		varying float v_brightness;
+		void main () {
+			gl_FragColor = vec4(v_brightness,0.0,0.0,1.0);
+	  }
+	</script>
 	<script type="text/javascript">
+		var positions = [
+			-0.8, -0.8, 0, 1,
+			0.8, -0.8, 0, 1,
+			-0.8, -0.2, 0, 1, //第一个矩形
+			-0.8, -0.2, 0, 1,
+			0.8,  -0.8, 0, 1,
+			0.8,  -0.2, 0, 1,
+
+			-0.8,  0.2, 0, 1,  
+			0.8,  0.2, 0, 1,
+			-0.8,  0.8, 0, 1, //第二个矩形
+			-0.8,  0.8, 0, 1, 
+			0.8,  0.2, 0, 1,
+			0.8,  0.8, 0, 1
+		];
+		var brightnessArray = [
+			0,  // 第一个矩形的第一个三角形
+			1, 
+			0, 
+			0,  // 第一个矩形的第二个三角形
+			1, 
+			1, 
+		
+			0,  // 第二个矩形的第一个三角形
+			1, 
+			0, 
+			0,  // 第二个矩形的第二个三角形
+			1, 
+			1
+		]
 		function initFn () {
 			var canvas = document.getElementById('canvas');
 			var canvasClientWidth = canvas.clientWidth;
@@ -53,25 +124,11 @@
 				alert('您当前的浏览器不支持webgl');
 			}
 			gl.viewport(0,0,canvas.width,canvas.height);
-			gl.clearColor(0,0,0,1);
+			gl.clearColor(1,1,1,1);
 			let program = initShaders(gl,'vertex-shader', 'fragment-shader');
 			gl.useProgram(program);
 			var vPositionLoc = gl.getAttribLocation(program, 'vPosition');
-			var positions = [
-			-0.8, -0.8, 0, 1,
-			 0.8, -0.8, 0, 1,
-			-0.8, -0.2, 0, 1, //第一个矩形
-			-0.8, -0.2, 0, 1,
-			0.8,  -0.8, 0, 1,
-			0.8,  -0.2, 0, 1,
-
-			-0.8,  0.2, 0, 1,  
-		   0.8,  0.2, 0, 1,
-		  -0.8,  0.8, 0, 1, //第二个矩形
-		  -0.8,  0.8, 0, 1, 
-		   0.8,  0.2, 0, 1,
-		   0.8,  0.8, 0, 1
-			];
+			
 			var positionBuffer = gl.createBuffer();
 			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 			gl.bufferData(gl.ARRAY_BUFFER,flatten(positions), gl.STATIC_DRAW);
@@ -80,10 +137,87 @@
 			gl.clear(gl.COLOR_BUFFER_BIT);
 			gl.drawArrays(gl.TRIANGLES, 0, 12);
 		}
+		initFn() //调用
+		function initFn2 () {
+			var canvas = document.getElementById('canvas2');
+			var canvasClientWidth = canvas.clientWidth;
+			var canvasClientHeight = canvas.clientHeight;
+			canvas.width = canvasClientWidth;
+			canvas.height = canvasClientHeight;
+			var gl = WebGLUtils.setupWebGL(canvas);
+			if (!gl) {
+				alert('您当前的浏览器不支持webgl');
+			}
+			gl.viewport(0,0,canvas.width,canvas.height);
+			gl.clearColor(1,1,1,1);
+			let program = initShaders(gl,'vertex-shader2', 'fragment-shader2');
+			gl.useProgram(program);
+			var vPositionLoc = gl.getAttribLocation(program, 'vPosition');
+			
+			var positionBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER,flatten(positions), gl.STATIC_DRAW);
+			gl.enableVertexAttribArray(vPositionLoc);
+			gl.vertexAttribPointer(vPositionLoc, 4, gl.FLOAT, false, 0, 0);
 
-		initFn()
-		
+			
+			var brightnessBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER,brightnessBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER,flatten(brightnessArray),gl.STATIC_DRAW);
+			var brightnessLoc = gl.getAttribLocation(program,'a_brightness');
+			gl.enableVertexAttribArray(brightnessLoc);
+			gl.vertexAttribPointer(brightnessLoc, 1, gl.FLOAT, false, 0, 0);
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			gl.drawArrays(gl.TRIANGLES, 0, 12);
+		}
+		initFn2();//调用绘制
+		function initFn3 () {
+			var canvas = document.getElementById('canvas3');
+			var canvasClientWidth = canvas.clientWidth;
+			var canvasClientHeight = canvas.clientHeight;
+			canvas.width = canvasClientWidth;
+			canvas.height = canvasClientHeight;
+			var gl = WebGLUtils.setupWebGL(canvas);
+			if (!gl) {
+				alert('您当前的浏览器不支持webgl');
+			}
+			gl.viewport(0,0,canvas.width,canvas.height);
+			gl.clearColor(1,1,1,1);
+			let program = initShaders(gl,'vertex-shader3', 'fragment-shader3');
+			gl.useProgram(program);
+			var vPositionLoc = gl.getAttribLocation(program, 'vPosition');
+			var num = 20;
+			var positions = [
+				-0.8, -0.8, 0, 1,
+				0.8, -0.8, 0, 1,
+				-0.8, -0.2, 0, 1, //第一个矩形
+				-0.8, -0.2, 0, 1,
+				0.8,  -0.8, 0, 1,
+				0.8,  -0.2, 0, 1,
 
+				-0.8,  0.2, 0, 1,  
+				0.8 * num,  0.2 * num, 0, 1 * num,
+				-0.8,  0.8, 0, 1, //第二个矩形
+				-0.8,  0.8, 0, 1, 
+				0.8 * num,  0.2 * num, 0, 1 * num,
+				0.8 * num,  0.8 * num, 0, 1 * num
+			]; 
+			var positionBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER,flatten(positions), gl.STATIC_DRAW);
+			gl.enableVertexAttribArray(vPositionLoc);
+			gl.vertexAttribPointer(vPositionLoc, 4, gl.FLOAT, false, 0, 0);
+
+			var brightnessBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER,brightnessBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER,flatten(brightnessArray),gl.STATIC_DRAW);
+			var brightnessLoc = gl.getAttribLocation(program,'a_brightness');
+			gl.enableVertexAttribArray(brightnessLoc);
+			gl.vertexAttribPointer(brightnessLoc, 1, gl.FLOAT, false, 0, 0);
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			gl.drawArrays(gl.TRIANGLES, 0, 12);
+		}
+		initFn3();
 	</script>
 </body>
 </html>

@@ -10,7 +10,7 @@
 		*{
 			box-sizing: border-box;
 		}
-		#canvas,#canvas2,#canvas3{
+		#canvas,#canvas2,#canvas3,#canvas4{
 			width: 10rem;
 			height:7.5rem;
 			border:1px solid #999;
@@ -32,8 +32,16 @@
 	<canvas id="canvas"></canvas>
 	<div class="text">现在我们加入一个渐变的效果</div>
 	<canvas id="canvas2"></canvas>
-	<div class="text">我们知道webgl会将gl_Position的值<strong>除以gl_Position.w</strong> ,所以理论上某个点的x,y,z,w按比例来的话点的位置应该是不会动的，比如原来有个点vec4(0.8,0.2,0.0,1.0)现在每个点除以一个数比如a,则点的位置不动如vec4(0.8/a,0.2/a,0.0/a,1.0/a),那么事实是这样吗？让我们来做一个实验</div>
+	<div class="text">我们知道webgl会将gl_Position的值<strong>除以gl_Position.w</strong> ,所以理论上某个点的x,y,z,w按比例来的话点的位置应该是不会动的，比如原来有个点vec4(0.8,0.2,0.0,1.0)现在每个点除以一个数比如a,则点的位置不动如vec4(0.8/a,0.2/a,0.0/a,1.0/a),那么事实是这样吗？让我们来做一个实验 <strong>事实上webgl使用W来实现纹理映射或可变量插值的透视投影</strong></div>
 	<canvas id="canvas3"></canvas>
+	<div class="text">我们再来做一个实验</div>
+	<div class="text">
+		<strong>
+			gl_FragColor = vec4(fract(v_brightness * 10.0),0.0,0.0,1.0);
+		</strong>
+		将 v_brightness 乘以 10 就会是值的范围为 0 到 10，fract 会保留小数部分所以结果还是 0 到 1之间， 但是总共是 10 次 0 到 1 了。
+	</div>
+	<canvas id="canvas4"></canvas>
 	<script src="./common/flexible.js"></script>
 	<script src="./common/webgl-utils.js"></script>
 	<script src="./common/initShaders.js"></script>
@@ -81,6 +89,22 @@
 		void main () {
 			gl_FragColor = vec4(v_brightness,0.0,0.0,1.0);
 	  }
+	</script>
+	<script id="vertex-shader4" type="x-shader/vertex-shader">
+		attribute vec4 vPosition;
+		attribute float a_brightness;
+		varying float v_brightness;
+		void main () {
+			gl_Position = vPosition;
+			v_brightness = a_brightness;
+		}
+	</script>
+	<script id="fragment-shader4" type="x-shader/fragment-shader">
+		precision mediump float;
+		varying float v_brightness;
+		void main () {
+			gl_FragColor = vec4(fract(v_brightness * 10.0),0.0,0.0,1.0);
+	  	}
 	</script>
 	<script type="text/javascript">
 		var positions = [
@@ -218,6 +242,53 @@
 			gl.drawArrays(gl.TRIANGLES, 0, 12);
 		}
 		initFn3();
+		function initFn4 () {
+			var canvas = document.getElementById('canvas4');
+			var canvasClientWidth = canvas.clientWidth;
+			var canvasClientHeight = canvas.clientHeight;
+			canvas.width = canvasClientWidth;
+			canvas.height = canvasClientHeight;
+			var gl = WebGLUtils.setupWebGL(canvas);
+			if (!gl) {
+				alert('您当前的浏览器不支持webgl');
+			}
+			gl.viewport(0,0,canvas.width,canvas.height);
+			gl.clearColor(1,1,1,1);
+			let program = initShaders(gl,'vertex-shader4', 'fragment-shader4');
+			gl.useProgram(program);
+			var num = 20;
+			var positions = [
+				-0.8, -0.8, 0, 1,
+				0.8, -0.8, 0, 1,
+				-0.8, -0.2, 0, 1, //第一个矩形
+				-0.8, -0.2, 0, 1,
+				0.8,  -0.8, 0, 1,
+				0.8,  -0.2, 0, 1,
+
+				-0.8,  0.2, 0, 1,  
+				0.8 * num,  0.2 * num, 0, 1 * num,
+				-0.8,  0.8, 0, 1, //第二个矩形
+				-0.8,  0.8, 0, 1, 
+				0.8 * num,  0.2 * num, 0, 1 * num,
+				0.8 * num,  0.8 * num, 0, 1 * num
+			]; 
+			var vPositionLoc = gl.getAttribLocation(program, 'vPosition');
+			var positionBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER,flatten(positions), gl.STATIC_DRAW);
+			gl.enableVertexAttribArray(vPositionLoc);
+			gl.vertexAttribPointer(vPositionLoc, 4, gl.FLOAT, false, 0, 0);
+
+			var brightnessBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER,brightnessBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER,flatten(brightnessArray),gl.STATIC_DRAW);
+			var brightnessLoc = gl.getAttribLocation(program,'a_brightness');
+			gl.enableVertexAttribArray(brightnessLoc);
+			gl.vertexAttribPointer(brightnessLoc, 1, gl.FLOAT, false, 0, 0);
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			gl.drawArrays(gl.TRIANGLES, 0, 12);
+		}
+		initFn4();
 	</script>
 </body>
 </html>

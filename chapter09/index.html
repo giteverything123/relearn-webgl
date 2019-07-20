@@ -7,11 +7,55 @@
 	<script src="../common/webgl-utils.js"></script>
 	<script src="../common/initShaders.js"></script>
 	<script src="../common/MV.js"></script>
+	<style>
+		#canvas-0{
+			width: 10rem;
+			height: 7.5rem;
+		}
+	</style>
 </head>
 <body>
 	<div class="text">在本章我们将使用不同的方法构造几何对象模型 <strong>把第4章介绍的几何变换推广到包含对象之间的层级关系</strong>对象的动态行为表现为对象模型各部分之间的层间关系。</div>
 	<div class="text"> <strong>层级结构</strong>是一个表示能力很强的概念,它是<strong>面向对象</strong>方法的一个重要组成部分,我们可以把对象的层级模型扩展到整个场景,包括虚拟照相机、灯光和材质属性。基于这样的层级模型,可以把图形API扩展为面向对象的系统。</div>
 	<div class="text">下面是把每个<strong>图符</strong>按所需的大小、方向和位置放入场景中。</div>
 	<div class="formula">M = TRS</div>
+	<div class="text">下面我们引入做一个机器人手臂</div>
+	<canvas id="canvas-0"></canvas>
+	<script id="vertex-shader0" type="x-shader/vertex-shader">
+		attribute vec4 vPosition;
+		attribute vec4 vColor;
+		uniform mat4 viewModelMatrix;
+		uniform mat4 projectMatrix;
+		varying vec4 fColor;
+		void main (){
+			fColor = vColor;
+			gl_Position = projectMatrix * viewModelMatrix *vPosition;
+		}
+	</script>
+	<script id="fragment-shader0" type="x-shader/fragment-shader">
+		precision mediump float;
+		varying vec4 fColor;
+		void main () {
+			gl_FragColor = fColor;
+		}
+	</script>
+	<script>
+		window.addEventListener('load',function(){
+			var canvas = document.getElementById('canvas-0');
+			console.log(canvas)
+			var canvasClientWidth = canvas.clientWidth;
+			var canvasClientHeight = canvas.clientHeight;
+			canvas.width = canvasClientWidth;
+			canvas.height = canvasClientHeight;
+			var gl = WebGLUtils.setupWebGL(canvas);
+			if (!gl) {
+				alert('您当前的浏览器不支持webgl');
+			}
+			gl.viewport(0,0,canvas.width,canvas.height);
+			gl.clearColor(1,1,1,1);
+			let program = initShaders(gl,'vertex-shader0', 'fragment-shader0');
+			gl.useProgram(program);
+		})
+	</script>
 </body>
 </html>

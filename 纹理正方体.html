@@ -8,7 +8,9 @@
 		#canvas{
 			width: 10rem;
 			height:10rem;
-			border-bottom:1px solid #333;
+			position: fixed;
+			top:50%;
+			transform: translateY(-50%);	
 		}
 	</style>
 </head>
@@ -20,7 +22,6 @@
 	<script src="./common/MV.js"></script>
 	<script id="vertex-shader" type="x-shader/vertex-shader">
 		attribute vec4 vPosition;
-		attribute vec4 vColor;
 		attribute vec2 vTexCoord;
 		attribute vec3 vNormal;
 		uniform mat4 modelViewMatrix;
@@ -34,14 +35,14 @@
 		void main()
 		{
 			vec3 pos = (modelViewMatrix * vPosition).xyz;
-			vec3 light = lightPosition.xyz;
+			vec3 light = lightPosition;
 			vec3 L = normalize(light - pos); //光线的方向向量
 			vec3 E = normalize(-pos);//这是观察方向向量
 			vec3 H = normalize(L + E);//这是半角向量
 			vec3 N = normalize(normalMatrix * vNormal);
 			float Kd = max(dot(L, N),0.0);
 			vec4 diffuse = Kd * diffuseProduct;
-			float Ks = pow(max(dot(L, N), 0.0), shininess);
+			float Ks = pow(max(dot(L, H), 0.0), shininess);
 			vec4 specular = Ks * specularProduct;
 			vec4 ambient = ambientProduct;
 			fColor = ambient + diffuse + specular;
@@ -59,7 +60,6 @@
 		void main()
 		{   
 		 gl_FragColor = fColor + texture2D(texMap0, fTexCoord) * texture2D(texMap1, fTexCoord); 
-		 //gl_FragColor = fColor;
 		}
 	</script>
 	<script>
@@ -156,15 +156,15 @@
 			var normalBuffer = gl.createBuffer();
 			gl.bindBuffer(gl.ARRAY_BUFFER,normalBuffer);
 			gl.bufferData(gl.ARRAY_BUFFER,flatten(normalArray),gl.STATIC_DRAW);
-			gl.enableVertexAttribArray(vNormalLoc);
 			gl.vertexAttribPointer(vNormalLoc,3,gl.FLOAT,false,0,0);
+			gl.enableVertexAttribArray(vNormalLoc);
 			//纹理坐标
 			var texCoordLoc = gl.getAttribLocation(program,'vTexCoord');
 			var texBuffer = gl.createBuffer();
 			gl.bindBuffer(gl.ARRAY_BUFFER,texBuffer);
 			gl.bufferData(gl.ARRAY_BUFFER,flatten(texCoordArray),gl.STATIC_DRAW);
-			gl.enableVertexAttribArray(texCoordLoc);
 			gl.vertexAttribPointer(texCoordLoc,2,gl.FLOAT,false,0,0);
+			gl.enableVertexAttribArray(texCoordLoc);
       		//模-视矩阵
 			var modelLoc = gl.getUniformLocation(program,'modelViewMatrix');
 			var eye = vec3(0,0,3);
@@ -177,7 +177,7 @@
 			gl.uniformMatrix4fv(projectionLoc,false,flatten(projectionMatrix));
 			//光的位置
 			var lightPositionLoc = gl.getUniformLocation(program, 'lightPosition');
-			gl.uniform3fv(lightPositionLoc, flatten(vec3(1,1,1)));
+			gl.uniform3fv(lightPositionLoc, flatten(vec3(3,2,4)));
 			//环境光
 			var ambientProductLoc = gl.getUniformLocation(program, 'ambientProduct');
 			gl.uniform4fv(ambientProductLoc, flatten(vec4(0.2,0.2,0.2,1.0)));
@@ -186,11 +186,11 @@
 			gl.uniform4fv(diffuseProductLoc, flatten(vec4(1.0,0.8,0.0,1.0)));
 			//镜面反射
 			var specularProductLoc = gl.getUniformLocation(program, 'specularProduct');
-			gl.uniform4fv(specularProductLoc, flatten(vec4(1.0,0.8,0.0,1.0)));
+			gl.uniform4fv(specularProductLoc, flatten(vec4(1.0,0.9,0.0,1.0)));
 			//法向量矩阵
 			var normalMatrixLoc = gl.getUniformLocation(program, 'normalMatrix');
 			//shininess
-			gl.uniform1f(gl.getUniformLocation(program, 'shininess'),10.0);
+			gl.uniform1f(gl.getUniformLocation(program, 'shininess'),60.0);
 			//生成纹理
 			var texSize = 64;
 			var numRows = 8;
@@ -248,7 +248,7 @@
 
 			function render() {
 				gl.clearColor(1,1,1,1);
-				modelViewMatrix = mult(modelViewMatrix, rotate(2,[1,0,1]));
+				modelViewMatrix = mult(modelViewMatrix, rotate(1,[1,0,1]));
 				gl.uniformMatrix4fv(modelLoc,false,flatten(modelViewMatrix));
 				//法向量矩阵是模-视变换矩阵子矩阵的转置矩阵的逆矩阵
 				var normalMatrix = inverse(mat3([

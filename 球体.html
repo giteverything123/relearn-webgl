@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>WebGL凹凸映射</title>
+	<link rel="stylesheet" type="text/css" href="./public-file/css/style.css">
+	<style>
+		#canvas{
+			width: 10rem;
+            height:10rem;
+            position: fixed;
+			top:50%;
+			transform: translateY(-50%);	
+		}
+	</style>
+</head>
+<body>
+	<canvas id="canvas"></canvas>
+	<script src="./common/flexible.js"></script>
+	<script src="./common/webgl-utils.js"></script>
+	<script src="./common/initShaders.js"></script>
+	<script src="./common/MV.js"></script>
+	<script id="vertex-shader" type="x-shader/vertex-shader">
+        attribute vec4 vPosition;
+		uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+		void main()
+		{   
+            gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+		}
+	</script>
+	<script id="fragment-shader" type="x-shader/fragment-shader">
+		precision mediump float;  
+		void main()
+        {   
+            gl_FragColor = vec4(0.3,0.2,0.5,1.0);
+		}
+	</script>
+    <script type="text/javascript">
+		var pointArray = [ ];
+        var va = vec4(0.0, 0.0, -1.0,1.0);
+        var vb = vec4(0.0, 0.942809, 0.333333, 1.0);
+        var vc = vec4(-0.816497, -0.471405, 0.333333, 1.0);
+        var vd = vec4(0.816497, -0.471405, 0.333333,1.0);
+
+        function triangle(a, b, c) {
+            pointArray.push(a);
+            pointArray.push(b);      
+            pointArray.push(c);
+        }
+
+        function divideTriangle(a, b, c, count) {
+            if ( count > 0 ) {      
+                var ab = mix( a, b, 0.5);
+                var ac = mix( a, c, 0.5);
+                var bc = mix( b, c, 0.5);      
+                ab = normalize(ab, true);
+                ac = normalize(ac, true);
+                bc = normalize(bc, true);                      
+                divideTriangle( a, ab, ac, count - 1 );
+                divideTriangle( ab, b, bc, count - 1 );
+                divideTriangle( bc, c, ac, count - 1 );
+                divideTriangle( ab, bc, ac, count - 1 );
+            }
+            else { 
+                triangle( a, b, c );
+            }
+        }
+
+        function tetrahedron(a, b, c, d, n) {
+            divideTriangle(a, b, c, n);
+            divideTriangle(d, c, b, n);
+            divideTriangle(a, d, b, n);
+            divideTriangle(a, c, d, n);
+        }
+
+        tetrahedron(vb, vd, va, vc,1);//生成顶点以及法向量
+        console.log(pointArray);
+        
+
+        
+        
+		function initFn () {
+			var canvas = document.getElementById('canvas');
+			var canvasClientWidth = canvas.clientWidth;
+			var canvasClientHeight = canvas.clientHeight;
+			canvas.width = canvasClientWidth;
+			canvas.height = canvasClientHeight;
+			var gl = WebGLUtils.setupWebGL(canvas);
+			if (!gl) {
+				alert('您当前的浏览器不支持webgl');
+			}
+			gl.viewport(0,0,canvas.width,canvas.height);
+			gl.clearColor(1,1,1,1);
+			gl.enable(gl.DEPTH_TEST);
+			let program = initShaders(gl,'vertex-shader', 'fragment-shader');
+			gl.useProgram(program);
+			//点
+			var vPositionLoc = gl.getAttribLocation(program, 'vPosition');
+			var positionBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER,flatten(pointArray), gl.STATIC_DRAW);
+            gl.vertexAttribPointer(vPositionLoc, 4, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(vPositionLoc);            
+      		//模-视矩阵
+			var modelLoc = gl.getUniformLocation(program,'modelViewMatrix');
+			var eye = vec3(0,0,3);
+			var at = vec3(0,0,0);
+			var up = vec3(0,1,0);
+            var modelViewMatrix = lookAt(eye,at,up);
+            modelViewMatrix = mult(modelViewMatrix,translate(0,0,1));
+            // modelViewMatrix = mult(modelViewMatrix,scale(0.5,[1,1,1]));
+      		//投影矩阵
+			var projectionLoc = gl.getUniformLocation(program,'projectionMatrix');
+            var projectionMatrix = perspective(60,1,1,3);
+			gl.uniformMatrix4fv(projectionLoc,false,flatten(projectionMatrix));
+			//法向量矩阵
+			var normalMatrixLoc = gl.getUniformLocation(program, 'normalMatrix');
+			
+
+			function render() {
+				gl.clearColor(1,1,1,1);
+			    modelViewMatrix = mult(modelViewMatrix, rotate(0.3,[1,1,1]));
+				gl.uniformMatrix4fv(modelLoc,false,flatten(modelViewMatrix));
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER);
+                gl.drawArrays( gl.TRIANGLES, 0, pointArray.length);
+				requestAnimationFrame(render)
+			}
+			render();
+		}
+		initFn();
+	</script>
+</body>
+</html>

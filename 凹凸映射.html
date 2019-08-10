@@ -68,7 +68,7 @@
             vec3 NN = normalize(2.0 * N.xyz - 1.0);
             vec3 LL = normalize(L);
             vec3 VV = normalize(V);
-            float Kd = max(dot(NN,LL), 0.0);
+            float Kd = max(dot(NN, LL), 0.0);
             vec3 H = normalize(LL + VV);//这是半角向量
             float Ks = pow(max(dot(LL, H), 0.0), shinnesss);
             vec4 specular = Ks * specularProduct;
@@ -126,7 +126,7 @@
             divideTriangle(a, c, d, n);
         }
 
-        tetrahedron(vb, vd, va, vc,0);//生成顶点以及法向量
+        tetrahedron(vb, vd, va, vc,5);//生成顶点以及法向量
 
         for(var i=0;i<256;i++){
             for(var j=0;j<256;j++){
@@ -144,7 +144,6 @@
             objTangentArray.push(a,b,c)
             objTangentArray.push(a,b,c)
         }
-        console.log(objTangentArray)
         
 		function initFn () {
 			var canvas = document.getElementById('canvas');
@@ -191,15 +190,13 @@
             gl.enableVertexAttribArray(objTangentLoc);
             //光的位置
             var lightPositionLoc = gl.getUniformLocation(program,'lightPosition');
-            gl.uniform4fv(lightPositionLoc,flatten([2.0,2.0,2.0,1.0]));
+            gl.uniform4fv(lightPositionLoc,flatten([3.0,3.0,3.0,1.0]));
       		//模-视矩阵
 			var modelLoc = gl.getUniformLocation(program,'modelViewMatrix');
 			var eye = vec3(0,0,3);
 			var at = vec3(0,0,0);
 			var up = vec3(0,1,0);
             var modelViewMatrix = lookAt(eye,at,up);
-            modelViewMatrix = mult(modelViewMatrix,translate(0,0,1));
-            // modelViewMatrix = mult(modelViewMatrix,scale(0.5,[1,1,1]));
       		//投影矩阵
 			var projectionLoc = gl.getUniformLocation(program,'projectionMatrix');
             var projectionMatrix = perspective(60,1,1,3);
@@ -208,27 +205,25 @@
 			var normalMatrixLoc = gl.getUniformLocation(program, 'normalMatrix');
 			//生成纹理
 			var texture = gl.createTexture();
-            gl.bindTexture( gl.TEXTURE_2D, texture );
+            gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-            gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGB, 256,256,0,
-                gl.RGB, gl.UNSIGNED_BYTE, textureData );
-            gl.generateMipmap( gl.TEXTURE_2D );
-            gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, 
-                            gl.NEAREST_MIPMAP_LINEAR );
-            gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST );
+            gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGB, 256, 256, 0, gl.RGB, gl.UNSIGNED_BYTE,      textureData );
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             gl.uniform1i(gl.getUniformLocation(program, "texMap"), 0);
-            // gl.activeTexture(gl.TEXTURE0);
+            gl.activeTexture(gl.TEXTURE0);
             //shinness
-            gl.uniform1f(gl.getUniformLocation(program, "shinnesss"),100.0);
+            gl.uniform1f(gl.getUniformLocation(program, "shinnesss"),200.0);
             //设置环境光
             var ambientProductLoc = gl.getUniformLocation(program,'ambientProduct');
             gl.uniform4fv(ambientProductLoc,flatten([0.3,0.1,0.1,1.0]));
             //设置漫反射光
             var diffuseProductLoc = gl.getUniformLocation(program,'diffuseProduct');
-            gl.uniform4fv(diffuseProductLoc,flatten([0.8,0.8,0.8,1.0]));
+            gl.uniform4fv(diffuseProductLoc,flatten([0.8,0.1,0.2,1.0]));
             //设置镜面反射光
             var specularProductLoc = gl.getUniformLocation(program,'specularProduct');
-            gl.uniform4fv(specularProductLoc,flatten([0.8,0.8,0.8,0.8]));
+            gl.uniform4fv(specularProductLoc,flatten([0.8,0.1,0.2,1.0]));
 
 			function render() {
 				gl.clearColor(1,1,1,1);
@@ -236,9 +231,9 @@
 				gl.uniformMatrix4fv(modelLoc,false,flatten(modelViewMatrix));
 				//法向量矩阵是模-视变换矩阵子矩阵的转置矩阵的逆矩阵
                 var normalMatrix = inverse(mat3([
-					vec3(modelViewMatrix[0][0], modelViewMatrix[1][0], modelViewMatrix[2][0]),
-					vec3(modelViewMatrix[0][1], modelViewMatrix[1][1], modelViewMatrix[2][1]),
-					vec3(modelViewMatrix[0][2], modelViewMatrix[1][2], modelViewMatrix[2][2])
+					modelViewMatrix[0][0], modelViewMatrix[1][0], modelViewMatrix[2][0],
+					modelViewMatrix[0][1], modelViewMatrix[1][1], modelViewMatrix[2][1],
+					modelViewMatrix[0][2], modelViewMatrix[1][2], modelViewMatrix[2][2]
 				]));
 				gl.uniformMatrix3fv(normalMatrixLoc, false ,flatten(normalMatrix));
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER);

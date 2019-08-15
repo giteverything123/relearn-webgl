@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>建立球体的新方法</title>
+	<link rel="stylesheet" type="text/css" href="./public-file/css/style.css">
+	<style>
+		#canvas{
+			width: 10rem;
+            height:10rem;
+            position: fixed;
+			top:50%;
+			transform: translateY(-50%);	
+		}
+	</style>
+</head>
+<body>
+	<canvas id="canvas"></canvas>
+	<script src="./common/flexible.js"></script>
+	<script src="./common/webgl-utils.js"></script>
+	<script src="./common/initShaders.js"></script>
+	<script src="./common/MV.js"></script>
+	<script id="vertex-shader" type="x-shader/vertex-shader">
+        attribute vec4 vPosition;
+		uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+		void main()
+		{   
+            gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+		}
+	</script>
+	<script id="fragment-shader" type="x-shader/fragment-shader">
+		precision mediump float;  
+		void main()
+        {   
+            gl_FragColor = vec4(0.3,0.2,0.5,1.0);
+		}
+	</script>
+    <script type="text/javascript">
+		var pointArray = [ ];
+        var n = 10; 
+        // 把圆形分成10等份
+        //则y=-5*1/n,-4*1/n,-3/n,-2/n,-1/n,0,1/n,2/n,3/n,4/n,5/n
+        var m = 18;
+        //把一个圆分成18份，则每一份为20度
+        var rowArr = [];
+        // 先把正y轴上的最顶点push进rowArr里面
+        rowArr.push([vec4(0,0.5,0,0.5)]); //不透明度为0.5
+        for(var i = 0; i < n-1; i++) {
+            //此时y为0.5 - (i+1)/6
+            var y = 0.5 - (i+1)/6;
+            var t = 1 - y * y;
+            var R = Math.sqrt(t);
+            var tarr = [];
+            for(var j=0;j < m; j++) {
+                var theta = 2 * j * Math.PI / m;
+                var tx = Math.cos(theta) * R;
+                var tz = Math.sin(theta) * R;
+                tarr.push(vec4(tx,y,tz));
+            }
+            rowArr.push(tarr);
+        }
+        //最后把y轴上的最底面的哪个点push进rowArr里面
+        rowArr.push([vec4(0,-0.5,0,0.5)]);
+        //把最上面的一个点和下一行生成的 m个点连成三角形
+        for(var i=0;i < m; i++) {
+            pointArray.push(vec4(0,0.5,0,0.5));
+            pointArray.push(rowArr[1][i]);
+            if(i+1 < m) {
+                pointArray.push(rowArr[1][i+1]);
+            } else {
+                pointArray.push(rowArr[1][0]);
+            }
+        }
+        for(var i=1;i<n-1;i++){ //i代表上 i+1代表下
+            for(var j=0;j<m;j++) { //j代表点的序号
+                pointArray.push(rowArr[i][j]);
+                pointArray.push(rowArr[i+1][j]);
+                if(j+1<m){
+                    pointArray.push(rowArr[i][j+1]); 
+                } else {
+                    pointArray.push(rowArr[i][0]);
+                }
+                if(j+1<m){
+                    pointArray.push(rowArr[i][j+1]);
+                }else{
+                    pointArray.push(rowArr[i][0]);
+                }
+                pointArray.push(rowArr[i+1][j]);
+                if(j < m){
+                    pointArray.push(rowArr[i+1][j]); 
+                } else {
+                    pointArray.push(rowArr[i+1][0]);
+                }
+            }
+        }
+        //把最下面的一个点和最后一行生成的 m个点连成三角形
+        for(var i=0;i < m; i++) {
+            pointArray.push(vec4(0,-0.5,0,0.5));
+            pointArray.push(rowArr[rowArr.length-2][i]);
+            if(i+1 < m) {
+                pointArray.push(rowArr[rowArr.length-2][i+1]);
+            } else {
+                pointArray.push(rowArr[rowArr.length-2][0]);
+            }
+        }
+        // console.log(pointArray)
+        
+
+        
+        
+		function initFn () {
+			var canvas = document.getElementById('canvas');
+			var canvasClientWidth = canvas.clientWidth;
+			var canvasClientHeight = canvas.clientHeight;
+			canvas.width = canvasClientWidth;
+			canvas.height = canvasClientHeight;
+			var gl = WebGLUtils.setupWebGL(canvas);
+			if (!gl) {
+				alert('您当前的浏览器不支持webgl');
+			}
+			gl.viewport(0,0,canvas.width,canvas.height);
+			gl.clearColor(1,1,1,1);
+			gl.enable(gl.DEPTH_TEST);
+			let program = initShaders(gl,'vertex-shader', 'fragment-shader');
+			gl.useProgram(program);
+			//点
+			var vPositionLoc = gl.getAttribLocation(program, 'vPosition');
+			var positionBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER,flatten(pointArray), gl.STATIC_DRAW);
+            gl.vertexAttribPointer(vPositionLoc, 4, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(vPositionLoc);            
+      		//模-视矩阵
+			var modelLoc = gl.getUniformLocation(program,'modelViewMatrix');
+			var eye = vec3(0,0,5);
+			var at = vec3(0,0,0);
+			var up = vec3(0,1,0);
+            var modelViewMatrix = lookAt(eye,at,up);
+            modelViewMatrix = mult(modelViewMatrix,translate(0,0,1));
+            // modelViewMatrix = mult(modelViewMatrix,scale(0.5,[1,1,1]));
+      		//投影矩阵
+			var projectionLoc = gl.getUniformLocation(program,'projectionMatrix');
+            var projectionMatrix = perspective(80,1,0.1,15);
+			gl.uniformMatrix4fv(projectionLoc,false,flatten(projectionMatrix));
+			//法向量矩阵
+			var normalMatrixLoc = gl.getUniformLocation(program, 'normalMatrix');
+			
+
+			function render() {
+				gl.clearColor(1,1,1,1);
+			    modelViewMatrix = mult(modelViewMatrix, rotate(0.001,[1,0,0]));
+				gl.uniformMatrix4fv(modelLoc,false,flatten(modelViewMatrix));
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER);
+                gl.drawArrays( gl.TRIANGLES, 0, pointArray.length);
+				requestAnimationFrame(render)
+			}
+			render();
+		}
+		initFn();
+	</script>
+</body>
+</html>

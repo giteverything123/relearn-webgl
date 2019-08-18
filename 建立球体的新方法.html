@@ -37,74 +37,70 @@
 		}
 	</script>
     <script type="text/javascript">
-		var pointArray = [ ];
-        var n = 20; 
-        // 把圆形分成10等份
-        //则y=-5*1/n,-4*1/n,-3/n,-2/n,-1/n,0,1/n,2/n,3/n,4/n,5/n
-        var m = 18;
-        //把一个圆分成18份，则每一份为20度
-        var rowArr = [];
-        // 先把正y轴上的最顶点push进rowArr里面
-        rowArr.push([vec4(0,0.5,0,1.0)]); //不透明度为0.5
-        for(var i = 0; i < n-1; i++) {
-            //此时y为0.5 - (i+1)/6
-            var y = 0.5 - (i+1)/n;
-            var t = 0.25 - y * y;
-            var R = Math.sqrt(t);
-            var tarr = [];
-            for(var j=0;j < m; j++) {
-                var theta = 2 * j * Math.PI / m;
-                var tx = Math.cos(theta) * R;
-                var tz = Math.sin(theta) * R;
-                tarr.push(vec4(tx,y,tz,1.0));
+        var pointArray = [ ];
+        function createSphere(n, m , opacity=1) {
+            var pointArray = [];
+            var rowArr = [];
+            // 先把正y轴上的最顶点push进rowArr里面
+            rowArr.push([vec4(0,0.5,0,opacity)]);
+            for(var i = 0; i < n-1; i++) {
+                var y = 0.5 - (i+1)/n;
+                var t = 0.25 - y * y;
+                var R = Math.sqrt(t);
+                var tarr = [];
+                for(var j=0;j < m; j++) {
+                    var theta = 2 * j * Math.PI / m;
+                    var tx = Math.cos(theta) * R;
+                    var tz = Math.sin(theta) * R;
+                    tarr.push(vec4(tx,y,tz,opacity));
+                }
+                rowArr.push(tarr);
             }
-            rowArr.push(tarr);
-        }
-        //最后把y轴上的最底面的哪个点push进rowArr里面
-        rowArr.push([vec4(0,-0.5,0,1.0)]);
-        //把最上面的一个点和下一行生成的 m个点连成三角形
-        for(var i=0;i < m; i++) {
-            pointArray.push(vec4(0,0.5,0,1.0));
-            pointArray.push(rowArr[1][i]);
-            if(i+1 < m) {
-                pointArray.push(rowArr[1][i+1]);
-            } else {
-                pointArray.push(rowArr[1][0]);
-            }
-        }
-        for(var i=1;i<n-1;i++){ //i代表上 i+1代表下
-            for(var j=0;j<m;j++) { //j代表点的序号
-                pointArray.push(rowArr[i][j]);
-                pointArray.push(rowArr[i+1][j]);
-                if(j+1<m){
-                    pointArray.push(rowArr[i][j+1]); 
+            //最后把y轴上的最底面的哪个点push进rowArr里面
+            rowArr.push([vec4(0,-0.5,0,opacity)]);
+            //把最上面的一个点和下一行生成的 m个点连成三角形
+            for(var i=0;i < m; i++) {
+                pointArray.push(vec4(0,0.5,0,opacity));
+                pointArray.push(rowArr[1][i]);
+                if(i+1 < m) {
+                    pointArray.push(rowArr[1][i+1]);
                 } else {
-                    pointArray.push(rowArr[i][0]);
+                    pointArray.push(rowArr[1][0]);
                 }
-                if(j+1<m){
-                    pointArray.push(rowArr[i][j+1]);
-                }else{
-                    pointArray.push(rowArr[i][0]);
+            }
+            for(var i=1;i<n-1;i++){ //i代表上 i+1代表下
+                for(var j=0;j<m;j++) { //j代表点的序号
+                    pointArray.push(rowArr[i][j]);
+                    pointArray.push(rowArr[i+1][j]);
+                    if(j+1<m){
+                        pointArray.push(rowArr[i][j+1]); 
+                        pointArray.push(rowArr[i][j+1]);
+                    } else {
+                        pointArray.push(rowArr[i][0]);
+                        pointArray.push(rowArr[i][0]);
+                    }
+                    pointArray.push(rowArr[i+1][j]);
+                    if(j+1 < m){
+                        pointArray.push(rowArr[i+1][j+1]); 
+                    } else {
+                        pointArray.push(rowArr[i+1][0]);
+                    }
                 }
-                pointArray.push(rowArr[i+1][j]);
-                if(j < m){
-                    pointArray.push(rowArr[i+1][j]); 
+            }
+            //把最下面的一个点和最后一行生成的 m个点连成三角形
+            for(var i=0;i < m; i++) {
+                pointArray.push(vec4(0,-0.5,0,opacity));
+                pointArray.push(rowArr[rowArr.length-2][i]);
+                if(i+1 < m) {
+                    pointArray.push(rowArr[rowArr.length-2][i+1]);
                 } else {
-                    pointArray.push(rowArr[i+1][0]);
+                    pointArray.push(rowArr[rowArr.length-2][0]);
                 }
             }
+            return pointArray
         }
-        //把最下面的一个点和最后一行生成的 m个点连成三角形
-        for(var i=0;i < m; i++) {
-            pointArray.push(vec4(0,-0.5,0,1.0));
-            pointArray.push(rowArr[rowArr.length-2][i]);
-            if(i+1 < m) {
-                pointArray.push(rowArr[rowArr.length-2][i+1]);
-            } else {
-                pointArray.push(rowArr[rowArr.length-2][0]);
-            }
-        }
-        // console.log(pointArray)
+        
+        pointArray = createSphere(20,20,0.5)
         
 
         
@@ -149,7 +145,7 @@
 
 			function render() {
 				gl.clearColor(1,1,1,1);
-			    modelViewMatrix = mult(modelViewMatrix, rotate(0.1,[1,0,0]));
+			    modelViewMatrix = mult(modelViewMatrix, rotate(1,[1,1,1]));
 				gl.uniformMatrix4fv(modelLoc,false,flatten(modelViewMatrix));
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER);
                 gl.drawArrays( gl.TRIANGLES, 0, pointArray.length);

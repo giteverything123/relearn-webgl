@@ -17,7 +17,7 @@ module.exports = function(gl,vertexShaderText,fragmentShaderText){
        *第2个参数是传入的参数，其可以有3种信息，如下:
        *1.<gl.SHADER_TYPE>,返回是顶点着色器(gl.VERTEX_SHADER)还是片元着色器(gl.FRAGMENT_SHADER)
       *2.<gl.DELETE_STATUS>返回着色器是否被删除成功（true/false）
-       *3.<gl.COMPILE_STATUS>返回着色器是否被编译成功(true/false)
+      *3.<gl.COMPILE_STATUS>返回着色器是否被编译成功(true/false)
       **/
 
     }

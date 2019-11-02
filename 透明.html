@@ -313,7 +313,7 @@
         ]));
         gl.uniformMatrix3fv(normalMatrixLoc, false ,flatten(normalMatrix));
         gl.uniformMatrix4fv(modelLoc,false,flatten(mvStack[2]));
-        //gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.BLEND);
         gl.depthMask(false);
         gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);

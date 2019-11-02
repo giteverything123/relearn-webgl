@@ -1,0 +1,132 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>第五章 观察</title>
+  <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+  <div id="pages-wrap">
+    <div class="touch-ball"></div>
+    <div class="page">
+      <div class="column">
+        <div class="point-title">5.2 计算机观察</div>
+        <div class="content">因为计算机图形学中的<strong>观察</strong>建立在<strong>虚拟照相机模型的基础上</strong>，所以我们应该能够生成任何一种<strong>经典投影图</strong>。不过两者有本质的<strong>区别:</strong><span>所有的经典投影图都依赖于对象、观察者和投影线之间的特定位置关系；而在计算机图形学中，我们强调对象定义和照相机参数设置这两者之间的独立性。</span>因此，<strong>为了生成某种经典投影图，应用程序必须利用对象的信息来创建照相机，并将照相机放在恰当的位置</strong>。</div>
+        <canvas id="canvas0" width="920" height="300"></canvas>
+        <div class="content">为了使得<strong>观察过程</strong>更加灵活我们把观察过程分解成两个基本操作:</div>
+        <div class="content"><strong>1.</strong>设置照相机的位置和方向<strong>该操作由模视变换来处理(经过模视变换处理后顶点将位于眼坐标系或照相机坐标系中)</strong></div>
+        <div class="content"><strong>2.</strong>使用投影变换,也就是说把指定的投影<strong>正投影或透视投影</strong>应用于顶点。<span>并且把指定的<strong>视见体内部的对象</strong>变换到位于<strong>裁剪坐标系中的裁剪立方体</strong>的内部</span>。</div>
+        <div class="content"><span>无论是正投影还是透视投影都能在<strong>照相机坐标系</strong>中指定所需的视见体</span>。</div>
+        <canvas id="canvas1" width="920" height="300"></canvas>
+        <div class="content"><span><strong>投影矩阵不仅要执行所需要的投影，还需要将对象从照相机坐标系中的视见体变换到裁剪坐标系中的裁剪立方体的内部</strong></span>。</div>
+      </div>
+      <div class="column">
+          <div class="point-title">5.3 定位照相机</div>
+          <div class="content">这一节把注意力放在用于<strong>指定照相机的API的实现上</strong>。</div>
+          <div class="content">为了便于理解，我们可以这样认为：<span>为了构建一个初始的场景，需要指定场景中所有对象的顶点并且将它们的位置存储到一个数组中。首先把模-视变换矩阵设置成单位矩阵。接下来对模-视矩阵的修改将使对象标架相对于照相机移动，这会影响其后定义的所有对象在照相机中成的像,<strong>因为它们的顶点是相对于重定位的对象标架下定义的</strong></span>。</div>
+          <div class="content">
+            <strong>如果指定想要的照相机的方位，以及如何在webgl中定位照相机？</strong>
+            我们将介绍3种方法：
+            <div><strong>第1种</strong>方法通过应用一系列旋转和平移来改变<span>模-视变换矩阵</span>从而间接指定照相机的方位。该方法是第4章的实例变换的直接应用。</div>
+          </div>
+          <div class="content"> <strong><span>webgl内部使用右手标架,webgl认为照相机的位置是固定的，因此模-视变换矩阵可以用来改变对象的方向和位置</span></strong></div>
+          
+      </div>
+      <div class="column">3</div>
+      <div class="column">4</div>
+      <div class="column">5</div>
+      <div class="column">6</div>
+      <div class="column">7</div>
+      <div class="column">8</div>
+      <div class="column">9</div>
+      <div class="column">10</div>
+      <div class="column">11</div>
+      <div class="column">12</div>
+    </div>
+  </div>
+  <div class="bookmark" style="display: none;">
+    <div class="left-arrow"></div>
+    <div class="mark"></div>
+    <div class="right-arrow"></div>
+  </div>
+  <script>
+    //计算有多少个column
+    let columnNumber = document.getElementsByClassName('column').length;
+    //计算page的宽度
+    let page = document.getElementsByClassName('page')[0];
+    page.style.width = columnNumber * 480 + 'px';
+    //给bookmark添加鼠标移动事件
+    let bookmark = document.getElementsByClassName('bookmark')[0];
+    let mark = document.getElementsByClassName('mark')[0];
+    //随着鼠标在滚动条上移动page向左边滚动，直到最后第三个为止
+    //那么100%对应的长度为(columnNumber - 3) * 每列的宽度
+    bookmark.addEventListener('mousemove',function(e){
+      //计算鼠标离元素左边沿的距离
+      let clientX = e.clientX;
+      //按百分比来计算mark的长度
+      let moveLeft = (clientX - 30) * (columnNumber - 3) * 480 / 1380;
+      //mark的长度等于(clientX - 30)
+      if((clientX - 30) >=0 && (clientX - 30) <= 1380){
+        mark.style.width = (clientX - 30) + 'px';
+        page.style.left = -moveLeft + 'px'
+      }
+    });
+    let arrow0 = document.getElementsByClassName('left-arrow')[0];
+    let arrow1 = document.getElementsByClassName('right-arrow')[0];
+    //给左箭头加上事件
+    arrow0.addEventListener('click', function(){
+      //每点击一下左箭头，page向左移动一个列的宽度
+      let pageLeft;
+      page.style.left ? pageLeft = parseFloat(page.style.left) : pageLeft = 0;
+      //计算一下pageLeft除以每列的宽度的值
+      let n = pageLeft / 480;
+      n = Math.floor(n);
+      mark.style.width = (1380 * n) / (3 - columnNumber) + 'px';
+      page.style.left = n * 480 + 'px';
+    });
+    arrow1.addEventListener('click', function(){
+      //每点击一下右箭头，page向右移动一个列的宽度
+      let pageLeft;
+      page.style.left ? pageLeft = parseFloat(page.style.left) : pageLeft = 0;
+      //计算一下pageLeft除以每列的宽度的值
+      let n = pageLeft / 480;
+      n = Math.ceil(n);
+      page.style.left = n * 480 + 'px';
+      mark.style.width = (1380 * n) / (3 - columnNumber) + 'px';
+    });
+    var touchBall = document.getElementsByClassName('touch-ball')[0];
+    touchBall.onclick = () => {
+      if (bookmark.style.display === 'none') {
+        bookmark.style.display = 'block';
+      } else {
+        bookmark.style.display = 'none';
+      }
+    }
+  </script>
+  <script src="./canvas0.js"></script>
+  <script src="./canvas1.js"></script>
+  <script src="../common/webgl-utils.js"></script>
+	<script src="../common/initShaders.js"></script>
+  <script src="../common/MV.js"></script>
+  <script src="./xwb-3d.js"></script>
+  <script>
+    console.log(xwb)
+  </script>
+  <script>
+    let m1 = mult(translate(0,0,-1),rotate(-90,[0,1,0]));
+    //let r1 = mult(rotate(-90,[0,1,0]) * translate(-1,0,0));
+    //let r2 = mult(translate(1,0,0),r1);
+    //translate(0,0,-1) * rotate(-90,[0,1,0]) * translate(-1,0,0) * translate(1,0,0)
+    let m2 = mult(translate(1,0,0),rotate(-90,[0,1,0]));
+    let m3 = mult(translate(-1,0,0),translate(1,0,0));
+    //let m2 = mult(rotate(-90,[0,1,0]),translate(1,0,0));
+    console.log(m1);
+    console.log(m2);
+    console.log(m3);
+  </script>
+</body>
+
+</html> 

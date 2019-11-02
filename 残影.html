@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>透明处理</title>
+	<link rel="stylesheet" type="text/css" href="./public-file/css/style.css">
+	<style>
+		#canvas{
+			width: 10rem;
+            height:10rem;
+            position: fixed;
+			top:50%;
+			transform: translateY(-50%);	
+		}
+	</style>
+</head>
+<body>
+	<canvas id="canvas"></canvas>
+	<script src="./common/flexible.js"></script>
+	<script src="./common/webgl-utils.js"></script>
+	<script src="./common/initShaders.js"></script>
+	<script src="./common/MV.js"></script>
+	<script id="vertex-shader" type="x-shader/vertex-shader">
+        attribute vec4 vPosition;
+        attribute vec3 vNormal;
+		uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+        uniform mat3 normalMatrix;
+        uniform vec4 ambientProduct;
+        uniform vec4 diffuseProduct;
+        uniform vec4 specularProduct;
+        uniform vec3 lightPosition;
+        uniform float shininess;
+        uniform int index;
+        varying vec4 fColor;
+		void main()
+		{   
+            vec3 pos = (modelViewMatrix * vPosition).xyz;
+			vec3 light = lightPosition;
+			vec3 L = normalize(light - pos); //光线的方向向量
+			vec3 E = normalize(-pos);//这是观察方向向量
+			vec3 H = normalize(L + E);//这是半角向量
+			vec3 N = normalize(normalMatrix * vNormal);
+			float Kd = max(dot(L, N),0.0);
+			vec4 diffuse = Kd * diffuseProduct;
+			float Ks = pow(max(dot(L, H), 0.0), shininess);
+			vec4 specular = Ks * specularProduct;
+            vec4 ambient = ambientProduct;
+            vec4 color;
+            if(index == 0){
+                color = vec4(0.0,0.2,0.6,1.0);
+            }
+            if(index == 1){
+                color = vec4(1.0,0.0,0.0,1.0);
+            }
+            if(index == 2){
+                color = vec4(0.0,0.0,1.0,1.0);
+            }
+            fColor = ambient + diffuse + specular + color;
+            if(index == 0){
+                fColor.a = 0.7;
+            }
+            if(index == 1){
+                fColor.a = 0.6;
+            }
+            if(index == 2){
+                fColor.a = 1.0;
+            }
+            gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+		}
+	</script>
+	<script id="fragment-shader" type="x-shader/fragment-shader">
+        precision mediump float;
+        varying vec4 fColor;
+        void main()
+        {   
+            gl_FragColor = fColor;
+		}
+	</script>
+    <script type="text/javascript">
+        var pointArray = []; //存放正方形顶点
+        var normalArray = []; //存放正方形法向量
+        
+        var points = [
+            vec4()
+        ];
+// 	function initFn () {
+//         var canvas = document.getElementById('canvas');
+//         var canvasClientWidth = canvas.clientWidth;
+//         var canvasClientHeight = canvas.clientHeight;
+//         canvas.width = canvasClientWidth;
+//         canvas.height = canvasClientHeight;
+//         var gl = WebGLUtils.setupWebGL(canvas);
+//         if (!gl) {
+//             alert('您当前的浏览器不支持webgl');
+//         }
+//         gl.viewport(0,0,canvas.width,canvas.height);
+//         let program = initShaders(gl,'vertex-shader', 'fragment-shader');
+//         gl.useProgram(program);
+//         //投影矩阵
+//         var projectionLoc = gl.getUniformLocation(program,'projectionMatrix');
+//         var projectionMatrix = perspective(30,1,1,3);
+//         gl.uniformMatrix4fv(projectionLoc,false,flatten(projectionMatrix));
+//         //shininess
+// 		gl.uniform1f(gl.getUniformLocation(program, 'shininess'),60.0);
+//         //点
+//         var vPositionLoc = gl.getAttribLocation(program, 'vPosition');
+//         var vNormalLoc = gl.getAttribLocation(program, 'vNormal');
+//         var modelLoc = gl.getUniformLocation(program,'modelViewMatrix');
+//         //法向量矩阵
+// 		var normalMatrixLoc = gl.getUniformLocation(program, 'normalMatrix');
+//         var lightPositionLoc = gl.getUniformLocation(program, 'lightPosition');
+//         var indexLoc = gl.getUniformLocation(program,'index');
+//         //环境光
+//         var ambientProductLoc = gl.getUniformLocation(program, 'ambientProduct');
+//         gl.uniform4fv(ambientProductLoc, flatten([0.2,0.2,1.0,1.0]));
+//         //赋值光线位置
+//         gl.uniform3fv(lightPositionLoc,flatten([2.0,2.0,2.0]));
+//         //漫反射
+//         var diffuseProductLoc = gl.getUniformLocation(program, 'diffuseProduct');
+//         gl.uniform4fv(diffuseProductLoc, flatten([0.2,0.2,0.2,1.0]));
+//         //镜面反射
+//         var specularProductLoc = gl.getUniformLocation(program, 'specularProduct');
+//         gl.uniform4fv(specularProductLoc, flatten([0.5,0.9,0.8,1.0]));
+//         //模-视矩阵
+//         var eye = vec3(0,0,2.5);
+//         var at = vec3(0,0,0);
+//         var up = vec3(0,1,0);
+//         var modelViewMatrix = lookAt(eye,at,up);
+//         var modelViewMatrix1 = mult(modelViewMatrix,scalem(0.5,0.5,0.5))
+//         var modelViewMatrix2 = mult(modelViewMatrix,scalem(0.15,0.15,0.15));
+//         var mvStack = [modelViewMatrix,modelViewMatrix1,modelViewMatrix2];
+//         gl.clearColor(1,1,1,1);
+               
+        
+    
+    
+    
+//     function render() {
+//         gl.uniform1i(indexLoc,0);
+//         //点
+//         var positionBuffer = gl.createBuffer();
+//         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+//         gl.bufferData(gl.ARRAY_BUFFER,flatten(pointSphereArray), gl.STATIC_DRAW);
+//         gl.vertexAttribPointer(vPositionLoc, 4, gl.FLOAT, false, 0, 0);
+//         gl.enableVertexAttribArray(vPositionLoc); 
+//         mvStack[0] = mult(mvStack[0],rotate(0.3,[1,1,1]))
+//         //法向量
+//         var normalBuffer = gl.createBuffer();
+//         gl.bindBuffer(gl.ARRAY_BUFFER,normalBuffer);
+//         gl.bufferData(gl.ARRAY_BUFFER,flatten(pointSphereNormalArray),gl.STATIC_DRAW);
+//         gl.vertexAttribPointer(vNormalLoc,3,gl.FLOAT, false, 0, 0);
+//         gl.enableVertexAttribArray(vNormalLoc);
+//         //法向量矩阵是模-视变换矩阵子矩阵的转置矩阵的逆矩阵
+//         var normalMatrix = inverse(mat3([
+//         mvStack[0][0][0], mvStack[0][1][0], mvStack[0][2][0],
+//         mvStack[0][0][1], mvStack[0][1][1], mvStack[0][2][1],
+//         mvStack[0][0][2], mvStack[0][1][2], mvStack[0][2][2]
+//         ]));
+//         gl.uniformMatrix3fv(normalMatrixLoc, false ,flatten(normalMatrix));
+//         gl.uniformMatrix4fv(modelLoc,false,flatten(mvStack[0]));
+//         gl.enable(gl.DEPTH_TEST);
+//         gl.enable(gl.BLEND);
+//         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+//         gl.depthMask(false);
+//         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); 
+//         gl.drawArrays( gl.TRIANGLES, 0, pointSphereArray.length);
+//         gl.uniform1i(indexLoc,1);
+//         //点
+//         var positionBuffer = gl.createBuffer();
+//         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+//         gl.bufferData(gl.ARRAY_BUFFER,flatten(pointSphereArray), gl.STATIC_DRAW);
+//         gl.vertexAttribPointer(vPositionLoc, 4, gl.FLOAT, false, 0, 0);
+//         gl.enableVertexAttribArray(vPositionLoc);
+//         mvStack[1] = mult(mvStack[1],rotate(1,[1,1,1]))
+//         //法向量
+//         var normalBuffer = gl.createBuffer();
+//         gl.bindBuffer(gl.ARRAY_BUFFER,normalBuffer);
+//         gl.bufferData(gl.ARRAY_BUFFER,flatten(pointSphereNormalArray),gl.STATIC_DRAW);
+//         gl.vertexAttribPointer(vNormalLoc,3,gl.FLOAT, false, 0, 0);
+//         gl.enableVertexAttribArray(vNormalLoc);
+//         //法向量矩阵是模-视变换矩阵子矩阵的转置矩阵的逆矩阵
+//         var normalMatrix = inverse(mat3([
+//             mvStack[1][0][0], mvStack[1][1][0], mvStack[1][2][0],
+//             mvStack[1][0][1], mvStack[1][1][1], mvStack[1][2][1],
+//             mvStack[1][0][2], mvStack[1][1][2], mvStack[1][2][2]
+//         ]));
+//         gl.uniformMatrix3fv(normalMatrixLoc, false ,flatten(normalMatrix));
+//         gl.uniformMatrix4fv(modelLoc,false,flatten(mvStack[1]));
+//         gl.enable(gl.DEPTH_TEST);
+//         gl.enable(gl.BLEND);
+//         gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+//         gl.depthMask(false);
+//         gl.drawArrays( gl.TRIANGLES, 0, pointSphereArray.length);
+//         //点
+//         var positionBuffer = gl.createBuffer();
+//         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+//         gl.bufferData(gl.ARRAY_BUFFER,flatten(pointTriangleArray), gl.STATIC_DRAW);
+//         gl.vertexAttribPointer(vPositionLoc, 4, gl.FLOAT, false, 0, 0);
+//         gl.enableVertexAttribArray(vPositionLoc);
+//         gl.uniform1i(indexLoc,2);
+//         mvStack[2] = mult(mvStack[2],rotate(2,[0,1,1]));
+//         //法向量
+//         var normalBuffer = gl.createBuffer();
+//         gl.bindBuffer(gl.ARRAY_BUFFER,normalBuffer);
+//         gl.bufferData(gl.ARRAY_BUFFER,flatten(pointTriangleNormalArray),gl.STATIC_DRAW);
+//         gl.vertexAttribPointer(vNormalLoc,3,gl.FLOAT, false, 0, 0);
+//         gl.enableVertexAttribArray(vNormalLoc);
+//         //法向量矩阵是模-视变换矩阵子矩阵的转置矩阵的逆矩阵
+//         var normalMatrix = inverse(mat3([
+//             mvStack[2][0][0], mvStack[2][1][0], mvStack[2][2][0],
+//             mvStack[2][0][1], mvStack[2][1][1], mvStack[2][2][1],
+//             mvStack[2][0][2], mvStack[2][1][2], mvStack[2][2][2]
+//         ]));
+//         gl.uniformMatrix3fv(normalMatrixLoc, false ,flatten(normalMatrix));
+//         gl.uniformMatrix4fv(modelLoc,false,flatten(mvStack[2]));
+//         gl.enable(gl.DEPTH_TEST);
+//         gl.enable(gl.BLEND);
+//         gl.depthMask(false);
+//         gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+//         gl.drawArrays( gl.TRIANGLES, 0, pointTriangleArray.length);
+//         requestAnimationFrame(render)
+//     }
+
+//     render();
+// }
+        
+// initFn();
+	</script>
+</body>
+</html>
